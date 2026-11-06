@@ -246,8 +246,9 @@ export default function AdminUsersScreen() {
       <View style={[styles.note, { borderColor: colors.border }]}>
         <Ionicons name="shield-checkmark-outline" size={18} color={colors.textSubtle} />
         <ThemedText variant="caption" tone="subtle" style={styles.flex}>
-          Baneado e inactivo deshabilitan el acceso y revocan los tokens. El administrador no puede
-          quitarse su propio rol ni deshabilitar su cuenta.
+          Banear a un estudiante cancela sus inscripciones activas. Un profesor con ACUDES asignados
+          no puede ser baneado ni degradado hasta reasignar o archivar sus ACUDES. El admin no puede
+          quitarse su propio rol ni deshabilitarse.
         </ThemedText>
       </View>
     </Screen>
