@@ -1,7 +1,3 @@
-import * as FileSystem from 'expo-file-system/legacy';
-import { Platform } from 'react-native';
-
-import { API_URL } from '@/config/env';
 import type {
   Acude,
   AcudeCategory,
@@ -13,8 +9,6 @@ import type {
   Weekday,
 } from '@/types';
 import { apiRequest } from './api-client';
-import { ApiError, NetworkError } from './errors';
-import { getValidIdToken } from './session-manager';
 
 export interface LiveAcudesQuery {
   q?: string;
@@ -126,87 +120,21 @@ export interface AcudeImageResult {
   serverTime: string;
 }
 
-interface UploadErrorBody {
-  error?: { code?: string; message?: string };
-}
-
-function parseUploadBody<T>(body: string): T {
-  try {
-    return JSON.parse(body) as T;
-  } catch {
-    throw new ApiError(502, 'INVALID_RESPONSE', 'No pudimos interpretar la respuesta del servidor.');
-  }
-}
-
-async function uploadNative(
-  id: string,
-  image: UploadableImage,
-): Promise<AcudeImageResult> {
-  if (!API_URL) {
-    throw new ApiError(500, 'CONFIG_ERROR', 'La aplicación no tiene configurada la dirección del servicio.');
-  }
-
-  const url = `${API_URL}/api/acudes/${encodeURIComponent(id)}/image`;
-
-  const send = async (token: string) => {
-    try {
-      return await FileSystem.uploadAsync(url, image.uri, {
-        httpMethod: 'POST',
-        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-        fieldName: 'file',
-        mimeType: image.mimeType,
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {
-      throw new NetworkError(
-        'No pudimos conectar para subir la imagen. Revisa tu conexión e inténtalo de nuevo.',
-      );
-    }
-  };
-
-  let result = await send(await getValidIdToken());
-  if (result.status === 401) {
-    result = await send(await getValidIdToken(true));
-  }
-
-  if (result.status < 200 || result.status >= 300) {
-    let body: UploadErrorBody = {};
-    try {
-      body = JSON.parse(result.body) as UploadErrorBody;
-    } catch {
-      body = {};
-    }
-    throw new ApiError(
-      result.status,
-      body.error?.code ?? `HTTP_${result.status}`,
-      body.error?.message ?? 'No se pudo subir la portada.',
-    );
-  }
-
-  return parseUploadBody<AcudeImageResult>(result.body);
-}
-
 /**
  * POST /api/acudes/:id/image — portada global; solo admin.
  * Envía multipart con el campo `file` (JPEG, PNG o WebP; máx. 500 KB).
- *
- * En Android/iOS se usa la subida nativa de `expo-file-system`, que maneja
- * correctamente los URI `file://` y el boundary de multipart. En web se usa
- * `fetch` con FormData.
+ * React Native construye el boundary automáticamente al recibir FormData.
  */
 export async function uploadAcudeImage(
   id: string,
   image: UploadableImage,
 ): Promise<AcudeImageResult> {
-  if (Platform.OS !== 'web') {
-    return uploadNative(id, image);
-  }
-
-  // En web el selector devuelve una URL temporal; se convierte en Blob para
-  // que el navegador construya el multipart con el boundary correcto.
-  const blob = await (await fetch(image.uri)).blob();
   const form = new FormData();
-  form.append('file', blob, image.name);
+  form.append('file', {
+    uri: image.uri,
+    name: image.name,
+    type: image.mimeType,
+  } as unknown as Blob);
 
   return apiRequest<AcudeImageResult>(
     `/api/acudes/${encodeURIComponent(id)}/image`,

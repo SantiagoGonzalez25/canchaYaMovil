@@ -90,7 +90,15 @@ export function AcudeCoverManager({
       );
     } catch (error) {
       setUploading(false);
-      Alert.alert('No se pudo preparar la portada', errorMessage(error));
+      const message = errorMessage(error);
+      if (message.includes('500 KB')) {
+        Alert.alert(
+          'Imagen demasiado grande',
+          'La portada no puede superar los 500 KB. Elige una foto más liviana o recórtala un poco.',
+        );
+        return;
+      }
+      Alert.alert('No se pudo preparar la portada', message);
     }
   };
 

@@ -64,6 +64,8 @@ export async function prepareCoverForUpload(sourceUri: string): Promise<Uploadab
     { width: 1200, compress: 0.72 },
     { width: 900, compress: 0.55 },
     { width: 700, compress: 0.4 },
+    { width: 600, compress: 0.35 },
+    { width: 500, compress: 0.25 },
   ];
   let lastUri = sourceUri;
 
