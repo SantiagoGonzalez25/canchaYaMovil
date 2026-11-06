@@ -293,9 +293,10 @@ export default function EditarAcudeScreen() {
             <Button
               title="Pasar asistencia"
               onPress={() =>
-                router.push(
-                  `/(app)/asistencia?acudeId=${encodeURIComponent(acude.id)}`,
-                )
+                router.push({
+                  pathname: '/(app)/asistencia',
+                  params: { acudeId: acude.id },
+                })
               }
               icon="checkbox-outline"
               size="lg"

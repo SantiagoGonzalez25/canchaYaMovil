@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   Redirect,
   useFocusEffect,
-  useLocalSearchParams,
+  useGlobalSearchParams,
   useRouter,
 } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -72,7 +72,7 @@ function groupSessions(sessions: AttendanceSession[]): SessionGroup[] {
 
 export default function AsistenciaScreen() {
   const router = useRouter();
-  const { acudeId: acudeIdParam } = useLocalSearchParams<{ acudeId?: string }>();
+  const { acudeId: acudeIdParam } = useGlobalSearchParams<{ acudeId?: string }>();
   const requestedAcudeId = Array.isArray(acudeIdParam)
     ? acudeIdParam[0]
     : (acudeIdParam ?? '');
