@@ -45,9 +45,10 @@ export function AcudeCoverManager({
   // componente nunca debe permitir que otro rol cambie una portada global.
   if (user?.role !== 'admin') return null;
 
-  const cover = coverUri(acude);
-  const showImage = !!cover && failedCover !== cover;
   const globalImageUrl = resolveApiUrl(acude.imageUrl);
+  // El admin siempre debe ver la portada global; la local es solo del estudiante.
+  const cover = globalImageUrl ?? coverUri(acude);
+  const showImage = !!cover && failedCover !== cover;
   const hasGlobalImage = !!acude.imageUrl || !!acude.imageStoragePath;
   const hasLocalCover = !!covers[acude.id];
   const busy = uploading || removing;
@@ -64,6 +65,7 @@ export function AcudeCoverManager({
         'La imagen ya está disponible para todos los dispositivos.',
       );
     } catch (error) {
+      console.warn('[cover] no se pudo subir la portada', error);
       Alert.alert('No se pudo subir la portada', errorMessage(error));
     } finally {
       setUploading(false);

@@ -1,3 +1,7 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
+
+import { API_URL } from '@/config/env';
 import type {
   Acude,
   AcudeCategory,
@@ -9,6 +13,7 @@ import type {
   Weekday,
 } from '@/types';
 import { apiRequest } from './api-client';
+import { getValidIdToken } from './session-manager';
 
 export interface LiveAcudesQuery {
   q?: string;
@@ -120,15 +125,44 @@ export interface AcudeImageResult {
   serverTime: string;
 }
 
+async function tryNativeUpload(
+  id: string,
+  image: UploadableImage,
+): Promise<AcudeImageResult | null> {
+  if (Platform.OS === 'web' || !API_URL) return null;
+
+  try {
+    const url = `${API_URL}/api/acudes/${encodeURIComponent(id)}/image`;
+    const send = (token: string) =>
+      FileSystem.uploadAsync(url, image.uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'file',
+        mimeType: image.mimeType,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+    let result = await send(await getValidIdToken());
+    if (result.status === 401) result = await send(await getValidIdToken(true));
+    if (result.status < 200 || result.status >= 300) return null;
+    return JSON.parse(result.body) as AcudeImageResult;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * POST /api/acudes/:id/image — portada global; solo admin.
  * Envía multipart con el campo `file` (JPEG, PNG o WebP; máx. 500 KB).
- * React Native construye el boundary automáticamente al recibir FormData.
+ * Se intenta la subida nativa y, si falla, se usa FormData con fetch.
  */
 export async function uploadAcudeImage(
   id: string,
   image: UploadableImage,
 ): Promise<AcudeImageResult> {
+  const native = await tryNativeUpload(id, image);
+  if (native) return native;
+
   const form = new FormData();
   form.append('file', {
     uri: image.uri,
