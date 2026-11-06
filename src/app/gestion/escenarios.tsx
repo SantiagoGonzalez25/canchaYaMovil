@@ -124,7 +124,11 @@ export default function EscenariosScreen() {
                 await load();
               })
               .catch((reason) => {
-                Alert.alert('No se pudo eliminar', errorMessage(reason));
+                Alert.alert(
+                  'No puedes eliminar un escenario',
+                  'Está asignado a un ACUDE activo. Reasigna sus franjas o archiva el ACUDE primero.',
+                );
+                console.warn('[escenarios] no se pudo eliminar', reason);
               })
               .finally(() => setDeletingId(null));
           },
