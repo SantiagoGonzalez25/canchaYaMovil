@@ -132,7 +132,7 @@ export function AcudeForm({
   };
 
   const addSlot = () => {
-    const scenarioId = draft.scenarioId || scenarios[0]?.id || '';
+    const scenarioId = draft.scenarioId;
     const key = `new-${Date.now()}-${newSlotCounter.current}`;
     newSlotCounter.current += 1;
     setDraft((prev) => ({
@@ -203,14 +203,17 @@ export function AcudeForm({
     value,
     label: ACUDE_STATUS_LABELS[value],
   }));
-  const scenarioOptions: ChoiceOption[] = scenarios.map((scenario) => ({
-    value: scenario.id,
-    label: scenario.name,
-    hint:
-      scenario.status === 'available'
-        ? undefined
-        : SCENARIO_STATUS_LABELS[scenario.status],
-  }));
+  const scenarioOptions: ChoiceOption[] = [
+    { value: '', label: 'Sin asignar / Por asignar' },
+    ...scenarios.map((scenario) => ({
+      value: scenario.id,
+      label: scenario.name,
+      hint:
+        scenario.status === 'available'
+          ? undefined
+          : SCENARIO_STATUS_LABELS[scenario.status],
+    })),
+  ];
   const dayOptions = WEEKDAYS.map((day) => ({ value: day, label: WEEKDAY_LABELS[day] }));
 
   return (

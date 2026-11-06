@@ -156,7 +156,9 @@ export function validateAcudeDraft(draft: AcudeDraft): AcudeValidationResult {
     errors.teacherName = 'El nombre del docente no puede superar 120 caracteres.';
   }
 
-  if (!text(draft.scenarioId)) errors.scenarioId = 'Selecciona el escenario principal.';
+  if (!text(draft.scenarioId) && draft.status === 'published') {
+    errors.scenarioId = 'Asigna un escenario antes de publicar.';
+  }
 
   const maxCapacity = parseInteger(draft.maxCapacity);
   if (maxCapacity === null || maxCapacity < 1 || maxCapacity > 500) {
@@ -211,8 +213,8 @@ export function validateAcudeDraft(draft: AcudeDraft): AcudeValidationResult {
     ) {
       errors[slotFieldKey(slot.key, 'endTime')] = `${label}: la hora de fin debe ser mayor.`;
     }
-    if (!slotScenarioId) {
-      errors[slotFieldKey(slot.key, 'scenarioId')] = `${label}: selecciona un escenario.`;
+    if (!slotScenarioId && draft.status === 'published') {
+      errors[slotFieldKey(slot.key, 'scenarioId')] = `${label}: asigna un escenario antes de publicar.`;
     }
 
     let slotCapacity: number | undefined;
@@ -229,7 +231,7 @@ export function validateAcudeDraft(draft: AcudeDraft): AcudeValidationResult {
       TIME_PATTERN.test(startTime) &&
       TIME_PATTERN.test(endTime) &&
       minutesOf(startTime) < minutesOf(endTime) &&
-      slotScenarioId
+      (draft.status !== 'published' || Boolean(slotScenarioId))
     ) {
       validSlots.push({
         index,
@@ -259,6 +261,7 @@ export function validateAcudeDraft(draft: AcudeDraft): AcudeValidationResult {
       const b = validSlots[j];
       if (!a || !b) continue;
       if (
+        a.slot.scenarioId &&
         a.slot.scenarioId === b.slot.scenarioId &&
         a.slot.day === b.slot.day &&
         minutesOf(a.slot.startTime) < minutesOf(b.slot.endTime) &&
