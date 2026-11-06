@@ -16,7 +16,7 @@ import { ROLE_LABELS } from '@/lib/labels';
 import { foldForSearch } from '@/lib/text';
 import { useAuth } from '@/providers/auth-provider';
 import { useNetwork } from '@/providers/network-provider';
-import { getUserEnrollments, listUsers, updateUserAccess } from '@/services/auth-service';
+import { listUsers, updateUserAccess } from '@/services/auth-service';
 import { errorMessage } from '@/services/errors';
 import type { Role, UserProfile, UserStatus } from '@/types';
 
@@ -88,24 +88,6 @@ export default function AdminUsersScreen() {
       Alert.alert('No se pudo actualizar', errorMessage(reason));
     } finally {
       setBusyId(null);
-    }
-  };
-
-  const showEnrollments = async (target: UserProfile) => {
-    try {
-      const items = await getUserEnrollments(target.uid);
-      const lines = items.slice(0, 12).map(
-        (item) =>
-          `• ${item.acudeName}\n  ${item.day} ${item.startTime}-${item.endTime} · ${item.status}`,
-      );
-      Alert.alert(
-        `Inscripciones de ${target.name}`,
-        items.length === 0
-          ? 'Este usuario no tiene inscripciones.'
-          : `${lines.join('\n')}${items.length > 12 ? `\n… y ${items.length - 12} más` : ''}`,
-      );
-    } catch (reason) {
-      Alert.alert('No se pudo cargar el historial', errorMessage(reason));
     }
   };
 
@@ -234,7 +216,7 @@ export default function AdminUsersScreen() {
                   <Chip
                     label="Ver inscripciones"
                     icon="list-outline"
-                    onPress={() => void showEnrollments(item)}
+                    onPress={() => router.push(`/gestion/usuario/${item.uid}`)}
                   />
                 </View>
               </View>

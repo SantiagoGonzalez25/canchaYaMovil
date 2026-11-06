@@ -101,6 +101,14 @@ function NavigationShell() {
             headerBackTitle: 'Atrás',
           }}
         />
+        <Stack.Screen
+          name="gestion/usuario/[id]"
+          options={{
+            headerShown: true,
+            title: 'Inscripciones del usuario',
+            headerBackTitle: 'Atrás',
+          }}
+        />
         <Stack.Screen name="+not-found" options={{ headerShown: true, title: 'No encontrado' }} />
       </Stack>
     </ThemeProvider>
