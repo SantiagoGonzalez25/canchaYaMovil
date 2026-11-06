@@ -45,7 +45,7 @@ export interface AttendanceSessionsQuery {
   from?: string;
   to?: string;
   acudeId?: string;
-  status?: 'pending' | 'saved';
+  status?: 'scheduled' | 'pending' | 'saved';
 }
 
 /** GET /api/attendance/sessions — sesiones reales calculadas desde el horario. */

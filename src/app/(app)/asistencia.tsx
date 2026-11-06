@@ -23,6 +23,7 @@ import {
 } from '@/lib/date';
 import { useAuth } from '@/providers/auth-provider';
 import { useNetwork } from '@/providers/network-provider';
+import { listAcudes } from '@/services/acudes-service';
 import { errorMessage } from '@/services/errors';
 import { listEnrollments } from '@/services/enrollments-service';
 import {
@@ -31,6 +32,7 @@ import {
   saveAttendance,
 } from '@/services/staff-service';
 import type {
+  Acude,
   AttendanceRecord,
   AttendanceSession,
   AttendanceStatus,
@@ -46,6 +48,8 @@ interface SessionGroup {
   date: string;
   sessions: AttendanceSession[];
 }
+
+type AcudeFilterStatus = 'all' | 'active' | 'draft';
 
 function toRecordMap(records: AttendanceRecord[]): Record<string, AttendanceRecord> {
   return Object.fromEntries(records.map((record) => [record.enrollmentId, record]));
@@ -70,12 +74,15 @@ export default function AsistenciaScreen() {
   const today = todayKey();
   const currentWeekStart = startOfWeek(today);
   const oldestWeekStart = addDays(currentWeekStart, -7);
+  const latestWeekStart = addDays(currentWeekStart, 7);
 
   const [weekStart, setWeekStart] = useState(currentWeekStart);
   const [sessions, setSessions] = useState<AttendanceSession[]>([]);
+  const [acudes, setAcudes] = useState<Acude[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [acudeFilter, setAcudeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<AcudeFilterStatus>('all');
   const sessionsRequestRef = useRef<AbortController | null>(null);
   const rosterRequestRef = useRef<AbortController | null>(null);
 
@@ -90,6 +97,7 @@ export default function AsistenciaScreen() {
   const [saving, setSaving] = useState(false);
 
   const isStudent = user?.role === 'student';
+  const isAdmin = user?.role === 'admin';
 
   const loadSessions = useCallback(async () => {
     sessionsRequestRef.current?.abort();
@@ -104,19 +112,28 @@ export default function AsistenciaScreen() {
     setSessionsLoading(true);
     setSessionsError(null);
     try {
-      const result = await getAttendanceSessions(
-        { from: weekStart, to: addDays(weekStart, 6) },
-        controller.signal,
-      );
+      const [sessionResult, acudeResult] = await Promise.all([
+        getAttendanceSessions(
+          { from: weekStart, to: addDays(weekStart, 6) },
+          controller.signal,
+        ),
+        listAcudes({}, controller.signal),
+      ]);
       if (controller.signal.aborted) return;
-      setSessions(result.sessions);
+      setSessions(sessionResult.sessions);
+      setAcudes(
+        [...acudeResult.acudes]
+          .filter((acude) => acude.status !== 'archived')
+          .filter((acude) => (isAdmin ? true : acude.status === 'published'))
+          .sort((a, b) => a.name.localeCompare(b.name, 'es')),
+      );
     } catch (reason) {
       if (controller.signal.aborted) return;
       setSessionsError(errorMessage(reason));
     } finally {
       if (!controller.signal.aborted) setSessionsLoading(false);
     }
-  }, [isOnline, isStudent, weekStart]);
+  }, [isAdmin, isOnline, isStudent, weekStart]);
 
   useFocusEffect(
     useCallback(() => {
@@ -215,11 +232,26 @@ export default function AsistenciaScreen() {
     setWeekStart(next);
   };
 
-  const acudeOptions = useMemo(() => {
-    const byId = new Map<string, string>();
-    for (const session of sessions) byId.set(session.acudeId, session.acudeName);
-    return [...byId.entries()].map(([id, name]) => ({ id, name }));
-  }, [sessions]);
+  const effectiveStatusFilter: AcudeFilterStatus = isAdmin
+    ? statusFilter
+    : 'active';
+
+  const statusAcudes = useMemo(
+    () =>
+      acudes.filter((acude) =>
+        effectiveStatusFilter === 'all'
+          ? true
+          : effectiveStatusFilter === 'active'
+            ? acude.status === 'published'
+            : acude.status === 'draft',
+      ),
+    [acudes, effectiveStatusFilter],
+  );
+
+  const acudeOptions = useMemo(
+    () => statusAcudes.map((acude) => ({ id: acude.id, name: acude.name })),
+    [statusAcudes],
+  );
 
   const effectiveFilter = acudeOptions.some((option) => option.id === acudeFilter)
     ? acudeFilter
@@ -227,10 +259,17 @@ export default function AsistenciaScreen() {
 
   const filteredSessions = useMemo(
     () =>
-      effectiveFilter
-        ? sessions.filter((session) => session.acudeId === effectiveFilter)
-        : sessions,
-    [effectiveFilter, sessions],
+      sessions.filter((session) => {
+        if (effectiveFilter && session.acudeId !== effectiveFilter) return false;
+        if (effectiveStatusFilter === 'active') {
+          return session.acudeStatus === 'published';
+        }
+        if (effectiveStatusFilter === 'draft') {
+          return session.acudeStatus === 'draft';
+        }
+        return true;
+      }),
+    [effectiveFilter, effectiveStatusFilter, sessions],
   );
 
   const groupedSessions = useMemo(
@@ -242,7 +281,7 @@ export default function AsistenciaScreen() {
   const missingCount = roster.length - markedCount;
   const alreadySaved = Object.keys(existing).length > 0;
   const canGoPrevious = weekStart > oldestWeekStart;
-  const canGoNext = weekStart < currentWeekStart;
+  const canGoNext = weekStart < latestWeekStart;
 
   if (isStudent) return <Redirect href="/(app)/panel" />;
 
@@ -382,6 +421,35 @@ export default function AsistenciaScreen() {
         </Pressable>
       ) : null}
 
+      {isAdmin ? (
+        <View style={styles.section}>
+          <ThemedText variant="label">Estado del ACUDE</ThemedText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+          >
+            {(
+              [
+                { value: 'all', label: 'Todos' },
+                { value: 'active', label: 'Activos' },
+                { value: 'draft', label: 'Borradores' },
+              ] as const
+            ).map((option) => (
+              <Chip
+                key={option.value}
+                label={option.label}
+                active={statusFilter === option.value}
+                onPress={() => {
+                  setStatusFilter(option.value);
+                  setAcudeFilter('');
+                }}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
       {acudeOptions.length > 1 ? (
         <View style={styles.section}>
           <ThemedText variant="label">Filtrar por ACUDE</ThemedText>
@@ -407,10 +475,24 @@ export default function AsistenciaScreen() {
         </View>
       ) : null}
 
-      {groupedSessions.length === 0 ? (
+      {acudes.length === 0 ? (
+        <EmptyState
+          title={isAdmin ? 'No hay ACUDES registrados' : 'No tienes ACUDES activos'}
+          message={
+            isAdmin
+              ? 'Crea un ACUDE para poder consultar sus sesiones de asistencia.'
+              : 'Tus ACUDES en borrador no aparecen en asistencia. Cuando el administrador los publique, podrás pasar lista.'
+          }
+          icon="calendar-outline"
+        />
+      ) : groupedSessions.length === 0 ? (
         <EmptyState
           title="No hay sesiones programadas"
-          message="En esta semana no hay clases según el horario de tus ACUDES. Puedes revisar la semana anterior para corregir asistencias."
+          message={
+            isAdmin && effectiveStatusFilter === 'draft'
+              ? 'No hay ACUDES en borrador con clases en esta semana.'
+              : 'En esta semana no hay clases según el horario de tus ACUDES. Puedes revisar la semana anterior para corregir asistencias.'
+          }
           icon="calendar-outline"
           actionLabel={canGoPrevious ? 'Ver semana anterior' : undefined}
           onAction={
@@ -429,52 +511,82 @@ export default function AsistenciaScreen() {
                 tone="neutral"
               />
             </View>
-            {group.sessions.map((session) => (
-              <Pressable
-                key={session.sessionKey}
-                onPress={() => openSession(session)}
-                accessibilityRole="button"
-                accessibilityLabel={`Abrir asistencia de ${session.acudeName} el ${relativeDayLabel(
-                  session.date,
-                )}`}
-                style={[
-                  styles.sessionCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                ]}
-              >
-                <View style={styles.sessionTime}>
-                  <ThemedText variant="label" tone="primary">
-                    {session.startTime}
-                  </ThemedText>
-                  <ThemedText variant="caption" tone="muted">
-                    {session.endTime}
-                  </ThemedText>
-                </View>
-                <View style={styles.flex}>
-                  <ThemedText variant="label">{session.acudeName}</ThemedText>
-                  <ThemedText variant="caption" tone="muted">
-                    {session.scenarioName} · {session.enrolled} inscrito
-                    {session.enrolled === 1 ? '' : 's'}
-                  </ThemedText>
-                  {user?.role === 'admin' ? (
-                    <ThemedText variant="caption" tone="subtle">
-                      {session.teacherName}
+            {group.sessions.map((session) => {
+              const isScheduled = session.status === 'scheduled';
+              const statusLabel =
+                session.status === 'saved'
+                  ? 'Guardada'
+                  : isScheduled
+                    ? 'Programada'
+                    : 'Pendiente';
+              const statusTone: 'success' | 'info' | 'warning' =
+                session.status === 'saved'
+                  ? 'success'
+                  : isScheduled
+                    ? 'info'
+                    : 'warning';
+              return (
+                <Pressable
+                  key={session.sessionKey}
+                  onPress={() => {
+                    if (!isScheduled) openSession(session);
+                  }}
+                  disabled={isScheduled}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: isScheduled }}
+                  accessibilityLabel={
+                    isScheduled
+                      ? `Sesión programada de ${session.acudeName} el ${relativeDayLabel(
+                          session.date,
+                        )}`
+                      : `Abrir asistencia de ${session.acudeName} el ${relativeDayLabel(
+                          session.date,
+                        )}`
+                  }
+                  style={[
+                    styles.sessionCard,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    isScheduled ? styles.sessionDisabled : null,
+                  ]}
+                >
+                  <View style={styles.sessionTime}>
+                    <ThemedText variant="label" tone="primary">
+                      {session.startTime}
                     </ThemedText>
-                  ) : null}
-                </View>
-                <View style={styles.sessionRight}>
-                  <Badge
-                    label={session.status === 'saved' ? 'Guardada' : 'Pendiente'}
-                    tone={session.status === 'saved' ? 'success' : 'warning'}
-                  />
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={colors.textMuted}
-                  />
-                </View>
-              </Pressable>
-            ))}
+                    <ThemedText variant="caption" tone="muted">
+                      {session.endTime}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.flex}>
+                    <View style={styles.sessionTitleRow}>
+                      <ThemedText variant="label" style={styles.flex}>
+                        {session.acudeName}
+                      </ThemedText>
+                      {isAdmin && session.acudeStatus === 'draft' ? (
+                        <Badge label="Borrador" tone="neutral" />
+                      ) : null}
+                    </View>
+                    <ThemedText variant="caption" tone="muted">
+                      {session.scenarioName} · {session.enrolled} inscrito
+                      {session.enrolled === 1 ? '' : 's'}
+                    </ThemedText>
+                    {isAdmin ? (
+                      <ThemedText variant="caption" tone="subtle">
+                        {session.teacherName}
+                      </ThemedText>
+                    ) : null}
+                  </View>
+                  <View style={styles.sessionRight}>
+                    <Badge label={statusLabel} tone={statusTone} />
+                    <Ionicons
+                      name={isScheduled ? 'time-outline' : 'chevron-forward'}
+                      size={18}
+                      color={colors.textMuted}
+                    />
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
         ))
       )}
@@ -515,10 +627,15 @@ export default function AsistenciaScreen() {
               </ThemedText>
             ) : null}
           </View>
-          <Badge
-            label={alreadySaved ? 'Guardada' : 'Pendiente'}
-            tone={alreadySaved ? 'success' : 'warning'}
-          />
+          <View style={styles.detailBadges}>
+            {isAdmin && selectedSession.acudeStatus === 'draft' ? (
+              <Badge label="Borrador" tone="neutral" />
+            ) : null}
+            <Badge
+              label={alreadySaved ? 'Guardada' : 'Pendiente'}
+              tone={alreadySaved ? 'success' : 'warning'}
+            />
+          </View>
         </View>
       </View>
 
@@ -733,7 +850,7 @@ export default function AsistenciaScreen() {
         subtitle={
           selectedSession
             ? 'Pasa lista de la sesión seleccionada. Puedes corregirla mientras esté dentro de la ventana permitida.'
-            : 'Elige una sesión de tu horario. Solo verás clases hasta hoy, sin fechas futuras.'
+            : 'Elige una sesión de tu horario. Las clases futuras aparecen como programadas; podrás pasar lista desde el día de la sesión.'
         }
         right={
           <Button
@@ -810,7 +927,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
   },
+  sessionDisabled: { opacity: 0.72 },
   sessionTime: { width: 48, alignItems: 'center', gap: 1 },
+  sessionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flexWrap: 'wrap',
+  },
   sessionRight: { alignItems: 'flex-end', gap: spacing.xs },
   backLink: {
     flexDirection: 'row',
@@ -829,6 +953,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
   },
+  detailBadges: { alignItems: 'flex-end', gap: spacing.xs },
   selectedTitle: { marginTop: 2, marginBottom: 2 },
   summary: {
     flexDirection: 'row',

@@ -197,6 +197,7 @@ export interface AttendanceSession {
   sessionKey: string;
   acudeId: string;
   acudeName: string;
+  acudeStatus: 'draft' | 'published';
   slotId: string;
   date: string;
   day: Weekday;
@@ -207,7 +208,7 @@ export interface AttendanceSession {
   teacherId: string;
   teacherName: string;
   enrolled: number;
-  status: 'pending' | 'saved';
+  status: 'scheduled' | 'pending' | 'saved';
 }
 
 export interface AttendanceRecord {
