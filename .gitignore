@@ -35,6 +35,24 @@ yarn-error.*
 .env.*
 !.env.example
 
+# secretos y credenciales
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+google-services.json
+GoogleService-Info.plist
+credentials.json
+*.pfx
+*.keystore
+.npmrc
+
+# builds y artefactos
+*.apk
+*.aab
+*.ipa
+coverage/
+.eas/
+*.log
+
 # guías y documentos locales
 *.pdf
 GUIA_PRUEBAS_MANUALES_MOVIL.md

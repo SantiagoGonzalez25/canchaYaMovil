@@ -74,7 +74,7 @@ copy .env.example .env   # PowerShell
 npm start
 ```
 
-Define en `.env` la URL del despliegue de referencia:
+Define en `.env` la URL del despliegue real. En los builds de EAS configúrala como variable de entorno del proyecto:
 
 ```env
 EXPO_PUBLIC_API_URL=https://tu-api.vercel.app
