@@ -1,5 +1,6 @@
 import type {
   AttendanceRecord,
+  AttendanceSession,
   AttendanceStatus,
   OccupationResult,
   Weekday,
@@ -38,6 +39,24 @@ export async function listAttendance(
     query,
     signal,
   });
+}
+
+export interface AttendanceSessionsQuery {
+  from?: string;
+  to?: string;
+  acudeId?: string;
+  status?: 'pending' | 'saved';
+}
+
+/** GET /api/attendance/sessions — sesiones reales calculadas desde el horario. */
+export async function getAttendanceSessions(
+  query: AttendanceSessionsQuery = {},
+  signal?: AbortSignal,
+): Promise<{ sessions: AttendanceSession[]; serverTime: string }> {
+  return apiRequest<{ sessions: AttendanceSession[]; serverTime: string }>(
+    '/api/attendance/sessions',
+    { query, signal },
+  );
 }
 
 export interface AttendanceEntryInput {

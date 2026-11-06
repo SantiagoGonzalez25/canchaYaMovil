@@ -192,6 +192,24 @@ export interface LocalEnrollment extends Enrollment {
 
 export type AttendanceStatus = 'present' | 'absent';
 
+/** Sesión real calculada desde el horario de un ACUDE (GET /api/attendance/sessions). */
+export interface AttendanceSession {
+  sessionKey: string;
+  acudeId: string;
+  acudeName: string;
+  slotId: string;
+  date: string;
+  day: Weekday;
+  startTime: string;
+  endTime: string;
+  scenarioId: string;
+  scenarioName: string;
+  teacherId: string;
+  teacherName: string;
+  enrolled: number;
+  status: 'pending' | 'saved';
+}
+
 export interface AttendanceRecord {
   id: string;
   acudeId: string;

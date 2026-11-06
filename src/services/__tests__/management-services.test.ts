@@ -15,6 +15,7 @@ import {
   getAttendanceReport,
   getEnrollmentReport,
 } from '@/services/reports-service';
+import { getAttendanceSessions } from '@/services/staff-service';
 import type { ManagerInput, ReportResult, Scenario, ScenarioInput } from '@/types';
 
 const managerInput: ManagerInput = {
@@ -76,6 +77,18 @@ describe('management services', () => {
     await getAttendanceReport({ groupBy: 'student' });
     expect(apiRequest).toHaveBeenCalledWith('/api/reports/attendance', {
       query: { groupBy: 'student' },
+      signal: undefined,
+    });
+  });
+
+  it('consulta las sesiones reales de asistencia por rango', async () => {
+    const response = { sessions: [], serverTime: '2026-11-06T12:00:00.000Z' };
+    (apiRequest as jest.Mock).mockResolvedValue(response);
+    await expect(
+      getAttendanceSessions({ from: '2026-11-02', to: '2026-11-08' }),
+    ).resolves.toEqual(response);
+    expect(apiRequest).toHaveBeenCalledWith('/api/attendance/sessions', {
+      query: { from: '2026-11-02', to: '2026-11-08' },
       signal: undefined,
     });
   });
