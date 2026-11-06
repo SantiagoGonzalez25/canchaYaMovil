@@ -10,7 +10,7 @@ describe('manager form validation', () => {
       email: '  ANA@TDEE.EDU.CO ',
       password: 'secreto123',
       sex: 'female',
-      phone: ' 300 000 0000 ',
+      phone: ' 3001234567 ',
     });
 
     expect(result.ok).toBe(true);
@@ -19,7 +19,7 @@ describe('manager form validation', () => {
       email: 'ana@tdee.edu.co',
       password: 'secreto123',
       sex: 'female',
-      phone: '300 000 0000',
+      phone: '3001234567',
     });
   });
 
