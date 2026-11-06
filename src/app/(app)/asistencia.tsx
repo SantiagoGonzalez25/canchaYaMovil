@@ -1,5 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, useFocusEffect, useRouter } from 'expo-router';
+import {
+  Redirect,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -67,6 +72,10 @@ function groupSessions(sessions: AttendanceSession[]): SessionGroup[] {
 
 export default function AsistenciaScreen() {
   const router = useRouter();
+  const { acudeId: acudeIdParam } = useLocalSearchParams<{ acudeId?: string }>();
+  const requestedAcudeId = Array.isArray(acudeIdParam)
+    ? acudeIdParam[0]
+    : (acudeIdParam ?? '');
   const { user } = useAuth();
   const { isOnline } = useNetwork();
   const { colors } = useAppTheme();
@@ -232,8 +241,13 @@ export default function AsistenciaScreen() {
     setWeekStart(next);
   };
 
+  const requestedAcude = acudes.find((acude) => acude.id === requestedAcudeId);
   const effectiveStatusFilter: AcudeFilterStatus = isAdmin
-    ? statusFilter
+    ? requestedAcude
+      ? requestedAcude.status === 'draft'
+        ? 'draft'
+        : 'active'
+      : statusFilter
     : 'active';
 
   const statusAcudes = useMemo(
@@ -253,9 +267,13 @@ export default function AsistenciaScreen() {
     [statusAcudes],
   );
 
-  const effectiveFilter = acudeOptions.some((option) => option.id === acudeFilter)
-    ? acudeFilter
-    : '';
+  const effectiveFilter = requestedAcude
+    ? requestedAcude.id
+    : acudeOptions.some((option) => option.id === acudeFilter)
+      ? acudeFilter
+      : '';
+  const activeAcudeName =
+    acudeOptions.find((option) => option.id === effectiveFilter)?.name ?? '';
 
   const filteredSessions = useMemo(
     () =>
@@ -421,6 +439,33 @@ export default function AsistenciaScreen() {
         </Pressable>
       ) : null}
 
+      {effectiveFilter && activeAcudeName ? (
+        <View
+          style={[
+            styles.activeFilter,
+            { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+          ]}
+        >
+          <Ionicons name="funnel-outline" size={15} color={colors.primary} />
+          <ThemedText variant="caption" tone="primary" style={styles.flex}>
+            Mostrando sesiones de {activeAcudeName}
+          </ThemedText>
+          <Pressable
+            onPress={() => {
+              setAcudeFilter('');
+              router.setParams({ acudeId: '' });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Quitar filtro de ACUDE"
+            hitSlop={8}
+          >
+            <ThemedText variant="caption" tone="primary" style={styles.linkStrong}>
+              Quitar
+            </ThemedText>
+          </Pressable>
+        </View>
+      ) : null}
+
       {isAdmin ? (
         <View style={styles.section}>
           <ThemedText variant="label">Estado del ACUDE</ThemedText>
@@ -439,10 +484,11 @@ export default function AsistenciaScreen() {
               <Chip
                 key={option.value}
                 label={option.label}
-                active={statusFilter === option.value}
+                active={effectiveStatusFilter === option.value}
                 onPress={() => {
                   setStatusFilter(option.value);
                   setAcudeFilter('');
+                  router.setParams({ acudeId: '' });
                 }}
               />
             ))}
@@ -461,14 +507,20 @@ export default function AsistenciaScreen() {
             <Chip
               label="Todos"
               active={effectiveFilter === ''}
-              onPress={() => setAcudeFilter('')}
+              onPress={() => {
+                setAcudeFilter('');
+                router.setParams({ acudeId: '' });
+              }}
             />
             {acudeOptions.map((option) => (
               <Chip
                 key={option.id}
                 label={option.name}
                 active={effectiveFilter === option.id}
-                onPress={() => setAcudeFilter(option.id)}
+                onPress={() => {
+                  setAcudeFilter(option.id);
+                  router.setParams({ acudeId: '' });
+                }}
               />
             ))}
           </ScrollView>
@@ -902,6 +954,16 @@ const styles = StyleSheet.create({
   },
   arrow: { padding: spacing.sm },
   weekLabel: { flex: 1, alignItems: 'center', gap: 1 },
+  activeFilter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
   todayLink: {
     flexDirection: 'row',
     alignItems: 'center',

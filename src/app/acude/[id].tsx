@@ -449,7 +449,9 @@ export default function AcudeDetailScreen() {
           ) : null}
           <Button
             title="Pasar asistencia"
-            onPress={() => router.push('/(app)/asistencia')}
+            onPress={() =>
+              router.push(`/(app)/asistencia?acudeId=${encodeURIComponent(acude.id)}`)
+            }
             variant="secondary"
             icon="checkbox-outline"
             fullWidth

@@ -289,14 +289,27 @@ export default function EditarAcudeScreen() {
             />
           </View>
 
-          <Button
-            title="Pasar asistencia"
-            onPress={() => router.push('/(app)/asistencia')}
-            icon="checkbox-outline"
-            size="lg"
-            fullWidth
-            style={styles.attendanceButton}
-          />
+          {acude.status === 'published' || isAdmin ? (
+            <Button
+              title="Pasar asistencia"
+              onPress={() =>
+                router.push(
+                  `/(app)/asistencia?acudeId=${encodeURIComponent(acude.id)}`,
+                )
+              }
+              icon="checkbox-outline"
+              size="lg"
+              fullWidth
+              style={styles.attendanceButton}
+            />
+          ) : (
+            <InlineNotice
+              tone="info"
+              icon="information-circle-outline"
+              title="Asistencia"
+              message="Publica este ACUDE para poder pasar asistencia."
+            />
+          )}
           {acude.status === 'published' ? (
             <Button
               title="Ver ficha pública"
