@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { Redirect, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Badge } from '@/components/badge';
@@ -19,8 +19,9 @@ import { CATEGORY_LABELS, WEEKDAY_LABELS } from '@/lib/labels';
 import { useAuth } from '@/providers/auth-provider';
 import { useData } from '@/providers/data-provider';
 import { useNetwork } from '@/providers/network-provider';
+import { getLiveAcudes } from '@/services/acudes-service';
 import { pickCoverImage, type CoverSource } from '@/services/cover-service';
-import type { AcudeCategory } from '@/types';
+import type { AcudeCategory, LiveAcude } from '@/types';
 
 const categoryIcon: Record<AcudeCategory, keyof typeof Ionicons.glyphMap> = {
   sports: 'football-outline',
@@ -54,8 +55,37 @@ export default function AcudeDetailScreen() {
   const [coverBusy, setCoverBusy] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [failedCover, setFailedCover] = useState<string | null>(null);
+  const [serverAcude, setServerAcude] = useState<LiveAcude | null>(null);
+  const [serverUnavailable, setServerUnavailable] = useState(false);
 
-  const acude = acudes.find((item) => item.id === acudeId);
+  useFocusEffect(
+    useCallback(() => {
+      if (!acudeId || !isOnline) {
+        setServerAcude(null);
+        setServerUnavailable(false);
+        return;
+      }
+
+      let active = true;
+      void getLiveAcudes()
+        .then((result) => {
+          if (!active) return;
+          const current = result.acudes.find((item) => item.id === acudeId) ?? null;
+          setServerAcude(current);
+          setServerUnavailable(!current);
+        })
+        .catch(() => {
+          // Error temporal: se conserva la copia local para no perder la pantalla.
+        });
+
+      return () => {
+        active = false;
+      };
+    }, [acudeId, isOnline]),
+  );
+
+  const cachedAcude = acudes.find((item) => item.id === acudeId);
+  const acude = serverAcude ?? (serverUnavailable ? undefined : cachedAcude);
   const enrolled = activeEnrollments.find(
     (item) => item.acudeId === acudeId && item.status === 'active',
   );

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { categoryColors, radius, spacing, useAppTheme } from '@/constants/theme';
 import { formatDateLong, formatTimeRange } from '@/lib/date';
@@ -12,6 +12,7 @@ import { ThemedText } from './themed-text';
 
 export interface EnrollmentCardProps {
   enrollment: LocalEnrollment;
+  onOpen?: () => void;
   onCancel?: () => void;
   onDismissConflict?: () => void;
   canceling?: boolean;
@@ -20,6 +21,7 @@ export interface EnrollmentCardProps {
 
 export function EnrollmentCard({
   enrollment,
+  onOpen,
   onCancel,
   onDismissConflict,
   canceling,
@@ -43,41 +45,57 @@ export function EnrollmentCard({
     >
       <View style={[styles.accent, { backgroundColor: category.solid }]} />
       <View style={styles.body}>
-        <View style={styles.topRow}>
-          <Badge label={CATEGORY_LABELS[enrollment.category]} tone="primary" />
-          {isConflict ? (
-            <Badge label="Revisar" tone="danger" icon="alert-circle-outline" />
-          ) : isPending ? (
-            <Badge label="Pendiente" tone="warning" icon="cloud-upload-outline" />
-          ) : (
-            <Badge
-              label={past ? 'Finalizada' : 'Activa'}
-              tone={past ? 'neutral' : 'success'}
-              icon={past ? 'time-outline' : 'checkmark-circle-outline'}
-            />
-          )}
-        </View>
+        <Pressable
+          onPress={onOpen}
+          disabled={!onOpen}
+          accessibilityRole={onOpen ? 'button' : undefined}
+          accessibilityLabel={onOpen ? `Abrir ${enrollment.acudeName}` : undefined}
+          style={({ pressed }) => ({ opacity: pressed ? 0.78 : 1 })}
+        >
+          <View style={styles.topRow}>
+            <Badge label={CATEGORY_LABELS[enrollment.category]} tone="primary" />
+            {isConflict ? (
+              <Badge label="Revisar" tone="danger" icon="alert-circle-outline" />
+            ) : isPending ? (
+              <Badge label="Pendiente" tone="warning" icon="cloud-upload-outline" />
+            ) : (
+              <Badge
+                label={past ? 'Finalizada' : 'Activa'}
+                tone={past ? 'neutral' : 'success'}
+                icon={past ? 'time-outline' : 'checkmark-circle-outline'}
+              />
+            )}
+          </View>
 
-        <ThemedText variant="subtitle">{enrollment.acudeName}</ThemedText>
+          <ThemedText variant="subtitle">{enrollment.acudeName}</ThemedText>
 
-        <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={15} color={colors.primary} />
-          <ThemedText variant="bodySmall" tone="muted" style={styles.flex}>
-            {WEEKDAY_LABELS[enrollment.day]} · {formatTimeRange(enrollment.startTime, enrollment.endTime)}
-          </ThemedText>
-        </View>
-        <View style={styles.detailRow}>
-          <Ionicons name="location-outline" size={15} color={colors.textSubtle} />
-          <ThemedText variant="bodySmall" tone="muted" style={styles.flex}>
-            {enrollment.scenarioName} · {enrollment.teacherName}
-          </ThemedText>
-        </View>
-        <View style={styles.detailRow}>
-          <Ionicons name="time-outline" size={15} color={colors.textSubtle} />
-          <ThemedText variant="caption" tone="subtle" style={styles.flex}>
-            Inscrito el {formatDateLong(enrollment.enrolledOn)}
-          </ThemedText>
-        </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="calendar-outline" size={15} color={colors.primary} />
+            <ThemedText variant="bodySmall" tone="muted" style={styles.flex}>
+              {WEEKDAY_LABELS[enrollment.day]} · {formatTimeRange(enrollment.startTime, enrollment.endTime)}
+            </ThemedText>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="location-outline" size={15} color={colors.textSubtle} />
+            <ThemedText variant="bodySmall" tone="muted" style={styles.flex}>
+              {enrollment.scenarioName} · {enrollment.teacherName}
+            </ThemedText>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="time-outline" size={15} color={colors.textSubtle} />
+            <ThemedText variant="caption" tone="subtle" style={styles.flex}>
+              Inscrito el {formatDateLong(enrollment.enrolledOn)}
+            </ThemedText>
+          </View>
+          {onOpen ? (
+            <View style={styles.detailRow}>
+              <Ionicons name="chevron-forward" size={15} color={colors.primary} />
+              <ThemedText variant="caption" tone="primary" style={styles.flex}>
+                Ver detalle del ACUDE
+              </ThemedText>
+            </View>
+          ) : null}
+        </Pressable>
 
         {isConflict ? (
           <>

@@ -199,7 +199,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       enrollmentsRef.current = [];
       coversRef.current = {};
       setState({ ...initialState, loading: false, ready: false });
-      void Promise.all([clearLocalDatabase(), clearCoverFiles()]).catch(() => undefined);
+      // Si hay operaciones pendientes no se borra la caché: se conservan para
+      // el mismo usuario. Al entrar otro usuario, el dueño de la caché cambia
+      // y se limpia antes de cargar sus datos.
+      void (async () => {
+        const pending = await countOutbox().catch(() => 0);
+        if (pending > 0) return;
+        await Promise.all([clearLocalDatabase(), clearCoverFiles()]).catch(() => undefined);
+      })();
       return;
     }
 

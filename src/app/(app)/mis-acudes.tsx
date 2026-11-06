@@ -187,6 +187,7 @@ export default function MisAcudesScreen() {
             <EnrollmentCard
               key={enrollment.id}
               enrollment={enrollment}
+              onOpen={() => router.push(`/acude/${enrollment.acudeId}`)}
               canceling={cancelingId === enrollment.id}
               onCancel={() => confirmCancel(enrollment)}
               onDismissConflict={() => dismissConflict(enrollment)}
