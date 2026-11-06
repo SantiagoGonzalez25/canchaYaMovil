@@ -93,6 +93,14 @@ function NavigationShell() {
             headerBackTitle: 'Atrás',
           }}
         />
+        <Stack.Screen
+          name="gestion/usuarios-admin"
+          options={{
+            headerShown: true,
+            title: 'Usuarios y roles',
+            headerBackTitle: 'Atrás',
+          }}
+        />
         <Stack.Screen name="+not-found" options={{ headerShown: true, title: 'No encontrado' }} />
       </Stack>
     </ThemeProvider>

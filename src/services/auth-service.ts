@@ -1,10 +1,13 @@
 import type {
   AuthResult,
+  Enrollment,
   ManagerInput,
   RegisterInput,
+  Role,
   Sex,
   User,
   UserProfile,
+  UserStatus,
 } from '@/types';
 import { apiRequest } from './api-client';
 
@@ -63,6 +66,36 @@ export async function getManagers(signal?: AbortSignal): Promise<UserProfile[]> 
     signal,
   });
   return result.managers;
+}
+
+/** GET /api/users — listado completo de usuarios; solo admin. */
+export async function listUsers(signal?: AbortSignal): Promise<UserProfile[]> {
+  const result = await apiRequest<{ users: UserProfile[] }>('/api/users', { signal });
+  return result.users.map((user) => ({ ...user, status: user.status ?? 'active' }));
+}
+
+/** PATCH /api/users/:id — cambia rol o estado; solo admin. */
+export async function updateUserAccess(
+  id: string,
+  input: { role?: Role; status?: UserStatus },
+): Promise<UserProfile> {
+  const result = await apiRequest<{ user: UserProfile }>(
+    `/api/users/${encodeURIComponent(id)}`,
+    { method: 'PATCH', body: input },
+  );
+  return { ...result.user, status: result.user.status ?? 'active' };
+}
+
+/** GET /api/users/:id/enrollments — historial de inscripciones; solo admin. */
+export async function getUserEnrollments(
+  id: string,
+  signal?: AbortSignal,
+): Promise<Enrollment[]> {
+  const result = await apiRequest<{ enrollments: Enrollment[] }>(
+    `/api/users/${encodeURIComponent(id)}/enrollments`,
+    { signal },
+  );
+  return result.enrollments;
 }
 
 export const SEX_OPTIONS: { value: Sex; label: string }[] = [

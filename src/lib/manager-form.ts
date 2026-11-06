@@ -51,7 +51,9 @@ export function validateManagerDraft(draft: ManagerDraft): ManagerValidationResu
 
   if (!draft.sex) errors.sex = 'Selecciona el sexo de la persona.';
 
-  if (phone.length > 30) errors.phone = 'El teléfono no puede superar 30 caracteres.';
+  if (phone && !/^3\d{9}$/.test(phone)) {
+    errors.phone = 'El teléfono debe tener 10 dígitos y empezar por 3.';
+  }
 
   const ok = Object.keys(errors).length === 0;
   if (!ok) return { ok, errors };

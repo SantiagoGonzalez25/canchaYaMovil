@@ -51,6 +51,10 @@ export default function SignUpScreen() {
       email: !isValidEmail(email) ? 'El correo no tiene un formato válido.' : null,
       password: password.length < 6 ? 'La contraseña debe tener al menos 6 caracteres.' : null,
       confirm: confirm !== password ? 'Las contraseñas no coinciden.' : null,
+      phone:
+        phone.trim() && !/^3\d{9}$/.test(phone.trim())
+          ? 'El teléfono debe tener 10 dígitos y empezar por 3.'
+          : null,
       sex: !sex ? 'Selecciona una opción.' : null,
     };
     setErrors(next);
@@ -152,12 +156,17 @@ export default function SignUpScreen() {
           optional
           leftIcon="call-outline"
           value={phone}
-          onChangeText={setPhone}
-          placeholder="300 000 0000"
+          onChangeText={(value) => {
+            setPhone(value.replace(/\D/g, '').slice(0, 10));
+            setErrors((prev) => ({ ...prev, phone: null }));
+          }}
+          placeholder="3001234567"
           keyboardType="phone-pad"
+          maxLength={10}
           autoComplete="tel"
           textContentType="telephoneNumber"
-          hint="Solo se usa para contacto institucional."
+          error={errors.phone}
+          hint="10 dígitos, formato colombiano: 3XXXXXXXXX."
         />
         <TextField
           label="Contraseña"

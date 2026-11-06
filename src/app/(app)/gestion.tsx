@@ -172,6 +172,13 @@ export default function GestionScreen() {
             icon="people-outline"
             style={styles.flex}
           />
+          <Button
+            title="Usuarios"
+            onPress={() => router.push('/gestion/usuarios-admin')}
+            variant="secondary"
+            icon="people-circle-outline"
+            style={styles.flex}
+          />
         </View>
       ) : null}
 
@@ -341,6 +348,7 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.md,
   },

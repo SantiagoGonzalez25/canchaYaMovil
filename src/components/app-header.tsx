@@ -43,11 +43,6 @@ export function AppHeader() {
           accessibilityLabel={statusLabel}
         >
           <View style={[styles.dot, { backgroundColor: dotColor }]} />
-          {!isOnline ? (
-            <ThemedText variant="caption" style={[styles.offline, { color: colors.warning }]}>
-              Sin conexión
-            </ThemedText>
-          ) : null}
         </View>
         {user ? (
           <Pressable
@@ -86,7 +81,6 @@ const styles = StyleSheet.create({
   brandButton: { flexShrink: 1 },
   right: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   status: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  offline: { fontSize: 9, lineHeight: 11, fontWeight: '800' },
   dot: { width: 7, height: 7, borderRadius: 999 },
   user: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   userText: { alignItems: 'flex-end' },

@@ -284,10 +284,10 @@ export default function UsuariosScreen() {
         <TextField
           label="Teléfono"
           value={draft.phone}
-          onChangeText={(value) => update('phone', value)}
-          placeholder="300 000 0000"
+          onChangeText={(value) => update('phone', value.replace(/\D/g, '').slice(0, 10))}
+          placeholder="3001234567"
           keyboardType="phone-pad"
-          maxLength={30}
+          maxLength={10}
           error={errors.phone}
           optional
         />

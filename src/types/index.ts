@@ -6,6 +6,7 @@
  */
 
 export type Role = 'student' | 'manager' | 'admin';
+export type UserStatus = 'active' | 'inactive' | 'banned';
 
 export type Sex = 'female' | 'male' | 'non_binary' | 'prefer_not_to_say';
 
@@ -22,6 +23,7 @@ export interface UserProfile extends User {
   createdAt: string;
   phone: string | null;
   documentId: string | null;
+  status?: UserStatus;
   updatedAt: string;
 }
 
